@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube Liker</title>
+<style>
+  :root { --bg:#ffffff; --fg:#1a1a1a; --card:#f3f3f3; --accent:#e62117; --muted:#666; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#121212; --fg:#f1f1f1; --card:#1f1f1f; --accent:#ff4e45; --muted:#aaa; }
+    color-scheme: dark;
+  }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--fg);
+         font-family:system-ui,sans-serif; display:flex; justify-content:center; }
+  .box { width:100%; max-width:420px; background:var(--card); padding:20px; border-radius:16px; }
+  h2 { margin-top:0; }
+  input { width:100%; box-sizing:border-box; padding:12px; border-radius:10px;
+          border:1px solid var(--muted); background:var(--bg); color:var(--fg); font-size:16px; }
+  button { width:100%; margin-top:12px; padding:12px; border:0; border-radius:10px;
+           background:var(--accent); color:#fff; font-size:16px; }
+  #status { margin-top:14px; color:var(--muted); min-height:20px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>👍 YouTube Liker</h2>
+  <button id="login">1. Google login</button>
+  <input id="link" placeholder="YouTube link paste කරන්න" style="margin-top:12px">
+  <button id="like">2. Like කරන්න</button>
+  <div id="status"></div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  const CLIENT_ID = "YOUR_CLIENT_ID.apps.googleusercontent.com";
+  const SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl";
+  let token = null;
+  const status = document.getElementById("status");
+
+  function getVideoId(url) {
+    const m = url.match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  document.getElementById("login").onclick = () => {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPE,
+      callback: (resp) => {
+        if (resp.access_token) { token = resp.access_token; status.textContent = "✅ Login උනා"; }
+        else status.textContent = "Login error";
+      },
+    });
+    client.requestAccessToken();
+  };
+
+  document.getElementById("like").onclick = async () => {
+    if (!token) { status.textContent = "මුලින් login වෙන්න"; return; }
+    const id = getVideoId(document.getElementById("link").value.trim());
+    if (!id) { status.textContent = "Link එක වැරදියි"; return; }
+    try {
+      const r = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos/rate?id=${id}&rating=like`,
+        { method: "POST", headers: { Authorization: "Bearer " + token } }
+      );
+      status.textContent = r.status === 204 ? "👍 Like කළා!" : "Error: " + r.status;
+    } catch (e) {
+      status.textContent = "Error: " + e.message;
+    }
+  };
+</script>
+</body>
+</html>
